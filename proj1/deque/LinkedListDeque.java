@@ -1,12 +1,12 @@
 package deque;
 
-public class LinkedListDeque {
+public class LinkedListDeque<PeteType> {
 
     private class LinkNode {
-        public String item;
+        public PeteType item;
         public LinkNode prev;
         public LinkNode next;
-        public LinkNode(LinkNode p, String i, LinkNode n) {
+        public LinkNode(LinkNode p, PeteType i, LinkNode n) {
             prev = p;
             item = i;
             next = n;
@@ -18,19 +18,26 @@ public class LinkedListDeque {
     private int size;
 
     public LinkedListDeque() {
+        sentinel = new LinkNode(null, null, null);
+        sentinel = new LinkNode(sentinel.prev, sentinel.item, sentinel.next);
     }
 
-    public LinkedListDeque(String x) {
-        sentinel = new LinkNode(null, "holder", null);
+    public LinkedListDeque(PeteType x) {
+        sentinel = new LinkNode(null, null, null);
         sentinel = new LinkNode(sentinel.prev, sentinel.item, sentinel.next);
         sentinel.next = new LinkNode(sentinel, x, sentinel);
         sentinel.prev = sentinel.next;
         size += 1;
     }
 
-    public void addFirst(String x) {
+    public void addFirst(PeteType x) {
         sentinel.next = new LinkNode(sentinel, x, sentinel.next);
-        sentinel.next.next.prev = sentinel.next;
+        if (sentinel.next.next == null) {
+            sentinel.next = new LinkNode(sentinel, x, sentinel);
+            sentinel.prev = sentinel.next;
+        } else {
+            sentinel.next.next.prev = sentinel.next;
+        }
     }
 
     public void addLast(String x) {
@@ -49,7 +56,7 @@ public class LinkedListDeque {
     }
 
     public static void main(String[] args) {
-        LinkedListDeque k = new LinkedListDeque("app");
+        LinkedListDeque<String> k = new LinkedListDeque<>("app");
         k.addFirst("queen");
         k.addFirst("king");
         System.out.println(k.sentinel.item);
