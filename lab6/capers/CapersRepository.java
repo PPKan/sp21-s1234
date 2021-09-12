@@ -46,8 +46,17 @@ public class CapersRepository {
      * @param text String of the text to be appended to the story
      */
     public static void writeStory(String text) {
-        File story = Utils.join(CAPERS_FOLDER, "dogs", "story.txt");
-        Utils.writeContents(story, readContentsAsString(story), text);
+        File story = Utils.join(CAPERS_FOLDER, "story.txt");
+        if (!story.exists()) {
+            Utils.writeContents(story, text);
+            System.out.println(text);
+        } else {
+            System.out.println(readContentsAsString(story));
+            System.out.println(text);
+            text = "\n" + text;
+            String old = readContentsAsString(story);
+            Utils.writeContents(story, old, text);
+        }
     }
 
     /**
@@ -71,5 +80,6 @@ public class CapersRepository {
         Dog newdog;
         newdog = Dog.fromFile(name);
         newdog.haveBirthday();
+        newdog.saveDog();
     }
 }
