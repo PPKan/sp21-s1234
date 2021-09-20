@@ -13,12 +13,17 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                // TODO: handle the `init` command
+                Commit com = new Commit();
+                com.printLogs();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
                 break;
-            // TODO: FILL THE REST IN
+            case "commit":
+                String message = args[1];
+                Commit newCom = new Commit(message);
+                newCom.printLogs();
+                break;
         }
     }
 }
