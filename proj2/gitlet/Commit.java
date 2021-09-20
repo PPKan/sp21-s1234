@@ -3,8 +3,9 @@ package gitlet;
 // TODO: any imports you need here
 
 import java.io.File;
-import java.util.Calendar;
+import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.LinkedHashMap;
 
 
 /** Represents a gitlet commit object.
@@ -13,7 +14,7 @@ import java.util.Date; // TODO: You'll likely use this in this class
  *
  *  @PeterKan
  */
-public class Commit {
+public class Commit implements Serializable {
     /**
      * TODO: add instance variables here.
      *
@@ -22,52 +23,43 @@ public class Commit {
      * variable is used. We've provided one example for `message`.
      */
 
-    /** The message of this Commit. */
+    /** The basic info of this Commit. */
     private Date date;
     private String message;
-    private File commitFile;
-    private String sha1;
-    private final String breakPoint = "==========";
+    private String name;
+    /** Parent is a sha1 code of its parent. */
+    private String parent;
+    /** Store information */
+    private LinkedHashMap library;
 
-    private static File logs;
     public static final File CWD = new File(System.getProperty("user.dir"));
-    public static final File GITDIR = Utils.join(CWD, ".gitlet");
+    public static final File GIT_DIR = Utils.join(CWD, ".gitlet");
+    public static final File COMMIT_DIR = Utils.join(GIT_DIR, "commit");
 
-    /** To check if the .gitlet is persisted */
-    private static void setupDirPersistence() {
-        if (!GITDIR.exists()) {
-            GITDIR.mkdir();
-        } else {
-            throw new Error("A Gitlet version-control system already exists in the current directory.");
-        }
+    /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
+     * restored at a later time, creating a new commit. The commit is said to be tracking the saved
+     * files. By default, each commit's snapshot of files will be exactly the same as its parent
+     * commit's snapshot of files; it will keep versions of files exactly as they are, and not
+     * update them. A commit will only update the contents of files it is tracking that have been
+     * staged for addition at the time of commit, in which case the commit will now include the
+     * version of the file that was staged instead of the version it got from its parent. A commit
+     * will save and start tracking any files that were staged for addition but weren't tracked by its
+     * parent. Finally, files tracked in the current commit may be untracked in the new commit as a
+     * result being staged for removal by the rm command (below). */
+    public Commit(String message, String parent, Date date) {
+        this.date = date;
+        this.message = message;
+        this.parent = parent;
+        this.name = Utils.sha1(date.toString(), message);
+
+
+
+        // check parents' files
+        // update staged files
+
+        File newCommit = Utils.join(COMMIT_DIR, name);
+        Utils.writeObject(newCommit, this);
     }
 
-    /** Constructor for the initial commit */
-    public Commit() {
-        setupDirPersistence();
-        logs = Utils.join(GITDIR, "logs.txt");
-        date = new Date();
-        message = "initial commit";
-        sha1 = Utils.sha1(date.toString(), message);
-        Utils.writeContents(logs,  breakPoint + "\n", sha1 + "\n", date.toString() + "\n", message);
-    }
-
-
-    /** Constructor for the new commit */
-    public Commit(String typedMes) {
-        date = new Date();
-        message = typedMes;
-        sha1 = Utils.sha1(date.toString(), message);
-        String old = Utils.readContentsAsString(logs);
-        Utils.writeContents(logs, old, "\n" + breakPoint + "\n", sha1 + "\n", date.toString() + "\n", message);
-    }
-
-    public void printLogs() {
-        System.out.println(logs);
-    }
-
-    private void writeFile() {
-
-    }
 
 }

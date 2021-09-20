@@ -13,16 +13,13 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                Commit com = new Commit();
-                com.printLogs();
+                Repository.init();
                 break;
             case "add":
                 // TODO: handle the `add [filename]` command
                 break;
             case "commit":
-                String message = args[1];
-                Commit newCom = new Commit(message);
-                newCom.printLogs();
+
                 break;
         }
     }
