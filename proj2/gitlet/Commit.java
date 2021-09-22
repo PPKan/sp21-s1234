@@ -4,10 +4,10 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date; // TODO: You'll likely use this in this class
-import java.util.LinkedHashMap;
+import java.util.*;
 
 import static gitlet.Utils.join;
+import static gitlet.Utils.sha1;
 
 
 /** Represents a gitlet commit object.
@@ -26,20 +26,20 @@ public class Commit implements Serializable {
      */
 
     /** The basic info of this Commit. */
-    private Date date;
+    private String timestamp;
     private String message;
     private String name;
     /** Parent is a sha1 code of its parent. */
     private String parent;
     /** Store information */
-    private LinkedHashMap library;
+    private LinkedHashMap<String, String> blobMap = new LinkedHashMap<>();
 
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     public static final File GIT_DIR = join(CWD, ".gitlet");
     /** The staging directory. */
-    public static final File STAGE_DIR = join(GIT_DIR, "staging");
+    public static final File BOLBS_DIR = join(GIT_DIR, "blobs");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
     /** The master directory. */
@@ -55,19 +55,62 @@ public class Commit implements Serializable {
      * will save and start tracking any files that were staged for addition but weren't tracked by its
      * parent. Finally, files tracked in the current commit may be untracked in the new commit as a
      * result being staged for removal by the rm command (below). */
-    public Commit(String message, String parent, Date date) {
-        this.date = date;
+    public Commit(String message) {
+
+        File newCommit = null;
+        File masterFile = null;
         this.message = message;
-        this.parent = parent;
-        this.name = Utils.sha1(date.toString(), message);
+
+        /* to distinguish from initial commit (parent is null), initial commit
+        commits no file */
+        if (!this.message.equals("initial commit")) {
+
+            /* current time */
+            this.timestamp = new Date().toString();
+
+            /* get file from master as parent */
+            File[] master = MASTER_DIR.listFiles();
+            for (File f : master) {
+                this.parent = f.getName();
+                masterFile = f;
+            }
+
+            /* Commit blobs (added) files */
+            File[] blobList = BOLBS_DIR.listFiles();
+            if (blobList.length == 0) {
+                /* the error message needed to be revised */
+                throw new Error("Nothing was added");
+            }
+            for (File f : blobList) {
+                blobMap.put(f.getName(), sha1(f.getName()));
+            }
+
+            /* construct new commit */
+            this.name = Utils.sha1(timestamp, message);
+            newCommit = Utils.join(COMMIT_DIR, name);
+        } else {
+
+            /* current time */
+            this.timestamp = new Date(0).toString();
+            /* no parent on first commit */
+            this.parent = null;
+            /* construct initial commit */
+            this.name = Utils.sha1(timestamp, message);
+            newCommit = Utils.join(MASTER_DIR, name);
+        }
 
 
+        /* Overwrites master file */
+        if (masterFile != null) {
+            Utils.writeObject(masterFile, this);
+        }
 
-        // check parents' files
-        // update staged files
-
-        File newCommit = Utils.join(COMMIT_DIR, name);
+        /* create new commit -> new commit on COMMIT_DIR, init in MASTER_DIR */
         Utils.writeObject(newCommit, this);
+    }
+
+    public Map getMap() {
+        return blobMap;
     }
 
 

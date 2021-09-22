@@ -7,24 +7,24 @@
 ### Commit
 
 #### Instance Variables
-* Message - contains the message of a commit.
-* Date - this at which a commit was created. Assigned by the constructor.
-* Parent - the parent commit of a commit object.
-* 
-
-#### Fields
-
-1. Field 1
-2. Field 2
+* message - contains the message of a commit.
+* timestamp - this at which a commit was created. Assigned by the constructor.
+* parent - the parent commit of a commit object.
 
 
-### Class 2
+##### Constructor
 
-#### Fields
+### Repertories
 
-1. Field 1
-2. Field 2
+#### Instance Variables
 
+#### Methods
+
+##### init
+
+##### add
+
+Check file from current directory then add to the blob directory.
 
 ## Algorithms
 

@@ -19,7 +19,7 @@ public class Main {
                 Repository.add(args[1]);
                 break;
             case "commit":
-
+                new Commit(args[1]);
                 break;
         }
     }

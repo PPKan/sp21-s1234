@@ -27,7 +27,7 @@ public class Repository {
     /** The .gitlet directory. */
     public static final File GIT_DIR = join(CWD, ".gitlet");
     /** The staging directory. */
-    public static final File STAGE_DIR = join(GIT_DIR, "staging");
+    public static final File BLOBS_DIR = join(GIT_DIR, "blobs");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
     /** The master directory. */
@@ -41,7 +41,7 @@ public class Repository {
         } else {
             throw new Error("A Gitlet version-control system already exists in the current directory.");
         }
-        STAGE_DIR.mkdir();
+        BLOBS_DIR.mkdir();
         COMMIT_DIR.mkdir();
         MASTER_DIR.mkdir();
     }
@@ -61,8 +61,7 @@ public class Repository {
      * commits in all repositories will trace back to it. */
     public static void init() {
         setupDir();
-        Date date = new Date();
-        Commit init = new Commit("initial commit", null, date);
+        new Commit("initial commit");
     }
 
     /** Adds a copy of the file as it currently exists to the staging area (see the
@@ -76,17 +75,26 @@ public class Repository {
      * version). The file will no longer be staged for removal (see gitlet rm),
      * if it was at the time of the command. */
     public static void add(String addFile) {
-        // add a file to staging area
-        // do not stage if the current working version is equal to the addFile
-        File[] fileList = GIT_DIR.listFiles();
+
+        /* If the current working version of the file is identical to the version
+        in the current commit, do not stage it to be added.
+        But weird! How do I compare a file in commit to the addFile?
+        By sha1? hashcode?
+        */
+        Commit master = Utils.readObject(MASTER_DIR.listFiles()[0], Commit.class);
+        if (master.getMap().get(addFile).equals(addFile)) {
+
+        }
+
+        File[] fileList = CWD.listFiles();
         File file = null;
         for (File f : fileList) {
             if (f.getName().equals(addFile)) {
                 file = f;
             }
         }
-        String fileName = Utils.sha1(file.getName());
-        File add = Utils.join(STAGE_DIR, fileName);
+//        String fileName = Utils.sha1(file.getName());
+        File add = Utils.join(BLOBS_DIR, file.getName());
         Utils.writeObject(add, file);
     }
 
