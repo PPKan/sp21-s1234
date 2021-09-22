@@ -75,12 +75,19 @@ public class Repository {
      * happen when a file is changed, added, and then changed back to it's original
      * version). The file will no longer be staged for removal (see gitlet rm),
      * if it was at the time of the command. */
-    public static void add(File addFile) {
+    public static void add(String addFile) {
         // add a file to staging area
         // do not stage if the current working version is equal to the addFile
-        String fileName = Utils.sha1(addFile);
+        File[] fileList = GIT_DIR.listFiles();
+        File file = null;
+        for (File f : fileList) {
+            if (f.getName().equals(addFile)) {
+                file = f;
+            }
+        }
+        String fileName = Utils.sha1(file.getName());
         File add = Utils.join(STAGE_DIR, fileName);
-        Utils.writeObject(add, addFile);
+        Utils.writeObject(add, file);
     }
 
     public void status() {

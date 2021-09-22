@@ -7,6 +7,8 @@ import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.LinkedHashMap;
 
+import static gitlet.Utils.join;
+
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -32,9 +34,16 @@ public class Commit implements Serializable {
     /** Store information */
     private LinkedHashMap library;
 
+    /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    public static final File GIT_DIR = Utils.join(CWD, ".gitlet");
-    public static final File COMMIT_DIR = Utils.join(GIT_DIR, "commit");
+    /** The .gitlet directory. */
+    public static final File GIT_DIR = join(CWD, ".gitlet");
+    /** The staging directory. */
+    public static final File STAGE_DIR = join(GIT_DIR, "staging");
+    /** The commit directory. */
+    public static final File COMMIT_DIR = join(GIT_DIR, "commit");
+    /** The master directory. */
+    public static final File MASTER_DIR = join(GIT_DIR, "master");
 
     /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
      * restored at a later time, creating a new commit. The commit is said to be tracking the saved
@@ -60,6 +69,8 @@ public class Commit implements Serializable {
         File newCommit = Utils.join(COMMIT_DIR, name);
         Utils.writeObject(newCommit, this);
     }
+
+
 
 
 }
