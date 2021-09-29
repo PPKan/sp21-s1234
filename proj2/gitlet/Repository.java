@@ -1,7 +1,10 @@
 package gitlet;
 
+import edu.princeton.cs.algs4.ST;
+
 import java.io.File;
-import java.util.Date;
+import java.io.IOException;
+import java.nio.file.Files;
 
 import static gitlet.Utils.*;
 
@@ -28,6 +31,10 @@ public class Repository {
     public static final File GIT_DIR = join(CWD, ".gitlet");
     /** The staging directory. */
     public static final File BLOBS_DIR = join(GIT_DIR, "blobs");
+    /** The staging directory. */
+    public static final File STAGE_DIR = join(GIT_DIR, "stage");
+    /** The removal directory. */
+    public static final File REMOVE_DIR = join(GIT_DIR, "remove");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
     /** The master directory. */
@@ -44,6 +51,8 @@ public class Repository {
         BLOBS_DIR.mkdir();
         COMMIT_DIR.mkdir();
         MASTER_DIR.mkdir();
+        STAGE_DIR.mkdir();
+        REMOVE_DIR.mkdir();
     }
 
     /**
@@ -73,29 +82,136 @@ public class Repository {
      * be added, and remove it from the staging area if it is already there (as can
      * happen when a file is changed, added, and then changed back to it's original
      * version). The file will no longer be staged for removal (see gitlet rm),
-     * if it was at the time of the command. */
+     * if it was at the time of the command.
+     * 1. check the file in blobs
+     * if the name are the same, return if the content is identical
+     * else add files into the blob directory and
+     * 2. check files in staging directory
+     * if the name are the same, do nothing if the content is identical
+     * else replace the file in the staging directory. */
     public static void add(String addFile) {
 
-        /* If the current working version of the file is identical to the version
-        in the current commit, do not stage it to be added.
-        But weird! How do I compare a file in commit to the addFile?
-        By sha1? hashcode?
-        */
-        Commit master = Utils.readObject(MASTER_DIR.listFiles()[0], Commit.class);
-        if (master.getMap().get(addFile).equals(addFile)) {
 
+        Commit master = Utils.readObject(MASTER_DIR.listFiles()[0], Commit.class);
+
+        Boolean blobFileBool = false;
+        Boolean blobSameBool = false;
+        Boolean stageFileBool = false;
+        Boolean stageSameBool = false;
+        String blobSha1 = null;
+        String stageSha1 = null;
+
+        /* get the file from CWD */
+        File file = getFileFromDir(CWD, addFile);
+
+        /* make the file into a sha1 contains name and its byte */
+        String fileSha1 = contentSha1(file);
+
+        /* look up the file in blob */
+        File blobFile = getFileFromDir(BLOBS_DIR, addFile);
+        if (blobFile != null) {
+            blobFileBool = true;
+            blobSha1 = contentSha1(blobFile);
         }
+
+        /* look up the file in stage */
+        File stageFile = getFileFromDir(STAGE_DIR, addFile);
+        if (stageFile != null) {
+            stageFileBool = true;
+            stageSha1 = contentSha1(stageFile);
+        }
+
+        if (fileSha1.equals(blobSha1)) {
+            blobSameBool = true;
+        }
+        if (fileSha1.equals(stageSha1)) {
+            stageSameBool = true;
+        }
+
+        if (stageSameBool) return;
+        if (stageFileBool) {
+            stageFile.delete();
+        }
+        File stage = Utils.join(STAGE_DIR, fileSha1);
+        Utils.writeObject(stage, file);
+
+        if (blobSameBool) return;
+        if (blobFileBool) {
+            File blob = Utils.join(BLOBS_DIR, fileSha1);
+            Utils.writeObject(blob, file);
+        }
+
+
+
+    }
+
+
+    /** a method for test file sameness */
+    public static boolean same(String file1, String file2) {
+        File fileone = null;
+        File filetwo = null;
 
         File[] fileList = CWD.listFiles();
-        File file = null;
         for (File f : fileList) {
-            if (f.getName().equals(addFile)) {
-                file = f;
+            if (f.getName().equals(file1)) {
+                fileone = f;
             }
         }
-//        String fileName = Utils.sha1(file.getName());
-        File add = Utils.join(BLOBS_DIR, file.getName());
-        Utils.writeObject(add, file);
+
+        File[] fileList2 = BLOBS_DIR.listFiles();
+        for (File f : fileList2) {
+            if (f.getName().equals(file2)) {
+                filetwo = f;
+            }
+        }
+
+        byte[] fileContent1 = new byte[0];
+        try {
+            fileContent1 = Files.readAllBytes(fileone.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        byte[] fileContent2 = new byte[0];
+        try {
+            fileContent2 = Files.readAllBytes(filetwo.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String one = sha1(fileContent1);
+        String two = sha1(fileContent2);
+
+        System.out.println(one);
+        System.out.println(two);
+
+        if (one.equals(two)) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    public static String contentSha1(File file) {
+        byte[] addFileByte = new byte[0];
+        try {
+            addFileByte = Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            throw new Error("fail on converting to byte");
+        }
+        String fileSha1 = sha1(file, addFileByte);
+        return fileSha1;
+    }
+
+    public static File getFileFromDir(File dir, String file) {
+        File[] fileList = dir.listFiles();
+        File tempFile = null;
+        for (File f : fileList) {
+            if (f.getName().equals(file)) {
+                return tempFile;
+            }
+        }
+        return null;
     }
 
     public void status() {

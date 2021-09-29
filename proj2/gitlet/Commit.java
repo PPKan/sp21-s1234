@@ -32,14 +32,18 @@ public class Commit implements Serializable {
     /** Parent is a sha1 code of its parent. */
     private String parent;
     /** Store information */
-    private LinkedHashMap<String, String> blobMap = new LinkedHashMap<>();
+    private Set<String> stageSet = new HashSet<>();
 
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     public static final File GIT_DIR = join(CWD, ".gitlet");
     /** The staging directory. */
-    public static final File BOLBS_DIR = join(GIT_DIR, "blobs");
+    public static final File BLOBS_DIR = join(GIT_DIR, "blobs");
+    /** The staging directory. */
+    public static final File STAGE_DIR = join(GIT_DIR, "stage");
+    /** The removal directory. */
+    public static final File REMOVE_DIR = join(GIT_DIR, "remove");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
     /** The master directory. */
@@ -76,13 +80,14 @@ public class Commit implements Serializable {
             }
 
             /* Commit blobs (added) files */
-            File[] blobList = BOLBS_DIR.listFiles();
-            if (blobList.length == 0) {
+            File[] stageList = STAGE_DIR.listFiles();
+            if (stageList.length == 0) {
                 /* the error message needed to be revised */
-                throw new Error("Nothing was added");
+                throw new Error("Nothing was in the stage list");
             }
-            for (File f : blobList) {
-                blobMap.put(f.getName(), sha1(f.getName()));
+            for (File f : stageList) {
+                stageSet.add(f.getName());
+                f.delete();
             }
 
             /* construct new commit */
@@ -109,8 +114,8 @@ public class Commit implements Serializable {
         Utils.writeObject(newCommit, this);
     }
 
-    public Map getMap() {
-        return blobMap;
+    public Set getSet() {
+        return stageSet;
     }
 
 
