@@ -104,43 +104,45 @@ public class Repository {
         String blobSha1 = null;
         String stageSha1 = null;
 
-        /* get the file from CWD */
         File file = getFileFromDir(CWD, addFile);
-
-        /* make the file into a sha1 contains name and its byte */
         String fileSha1 = contentSha1(file);
 
-        /* look up the file in blob */
-        File blobFile = getFileFromDir(BLOBS_DIR, addFile);
-        if (blobFile != null) {
-            blobFileBool = true;
-            blobSha1 = contentSha1(blobFile);
+        /* look for the file in stage, if there's a same name file with
+        different content, update it, else do nothing.
+        1. compare its name
+        if same - compare its content
+        if different/nothing - do nothing
+        use file's name as a staged file. convert it while commiting.
+        */
+        File[] stageList = STAGE_DIR.listFiles();
+        if (stageList.length > 0) {
+            for (File f : stageList) {
+                /* update content if name are same but with different content */
+                if (f.getName().equals(addFile) && !contentSha1(f).equals(fileSha1)) {
+                    f.delete();
+//                    File newFile = Utils.join(STAGE_DIR, addFile);
+//                    Utils.writeContents(newFile, file);
+                } else if (contentSha1(f).equals(fileSha1)) {
+                    throw new Error("don't add same thing twice");
+                }
+            }
         }
 
-        /* look up the file in stage */
-        File stageFile = getFileFromDir(STAGE_DIR, addFile);
-        if (stageFile != null) {
-            stageFileBool = true;
-            stageSha1 = contentSha1(stageFile);
+        /* look for file in blob, if there's a same file, return */
+        File[] blobList = BLOBS_DIR.listFiles();
+        if (blobList.length > 0) {
+            for (File f : blobList) {
+                if (contentSha1(f).equals(fileSha1)) {
+                    throw new Error("the file has been committed");
+                }
+            }
         }
 
-        if (fileSha1.equals(blobSha1)) {
-            blobSameBool = true;
-        }
-        if (fileSha1.equals(stageSha1)) {
-            stageSameBool = true;
-        }
-
-        if (stageSameBool) return;
-        if (stageFileBool) {
-            stageFile.delete();
-        }
-        File stage = Utils.join(STAGE_DIR, fileSha1);
-        Utils.writeObject(stage, file);
-
-        if (blobSameBool) return;
-            File blob = Utils.join(BLOBS_DIR, fileSha1);
-            Utils.writeObject(blob, file);
+        /* add file to blob and stage */
+        File stageFile = Utils.join(STAGE_DIR, addFile);
+        File blobFile = Utils.join(BLOBS_DIR, fileSha1);
+        Utils.writeContents(STAGE_DIR, stageFile);
+        Utils.writeContents(BLOBS_DIR, blobFile);
 
     }
 
@@ -213,6 +215,16 @@ public class Repository {
             }
         }
         return null;
+    }
+
+    public static byte[] getByte(File file) {
+        byte[] addFileByte = new byte[0];
+        try {
+            addFileByte = Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            throw new Error("fail on converting to byte");
+        }
+        return addFileByte;
     }
 
     public void status() {

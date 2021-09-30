@@ -89,14 +89,14 @@ public class Commit implements Serializable {
                 throw new Error("Nothing was in the stage list");
             }
             for (File f : stageList) {
-                stageSet.add(f.getName());
+                String stageSha1 = Repository.contentSha1(f);
+                stageSet.add(stageSha1);
                 f.delete();
             }
 
             /* construct new commit */
             this.name = Utils.sha1(timestamp, message);
             newCommit = Utils.join(COMMIT_DIR, name);
-            headCommit = Utils.join(HEAD_DIR, name);
         } else {
 
             /* current time */
@@ -106,10 +106,14 @@ public class Commit implements Serializable {
             /* construct initial commit */
             this.name = Utils.sha1(timestamp, message);
             masterCommit = Utils.join(MASTER_DIR, name);
+            Utils.writeObject(masterCommit, this);
+            newCommit = Utils.join(COMMIT_DIR, name);
+
 
         }
 
         /* add the commit to head file */
+        headCommit = Utils.join(HEAD_DIR, name);
         Utils.writeObject(headCommit, this);
 
         /* create new commit -> new commit on COMMIT_DIR, init in MASTER_DIR */
