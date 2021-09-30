@@ -94,16 +94,6 @@ public class Repository {
      * else replace the file in the staging directory. */
     public static void add(String addFile) {
 
-
-        Commit master = Utils.readObject(MASTER_DIR.listFiles()[0], Commit.class);
-
-        Boolean blobFileBool = false;
-        Boolean blobSameBool = false;
-        Boolean stageFileBool = false;
-        Boolean stageSameBool = false;
-        String blobSha1 = null;
-        String stageSha1 = null;
-
         File file = getFileFromDir(CWD, addFile);
         String fileSha1 = contentSha1(file);
 
@@ -120,8 +110,6 @@ public class Repository {
                 /* update content if name are same but with different content */
                 if (f.getName().equals(addFile) && !contentSha1(f).equals(fileSha1)) {
                     f.delete();
-//                    File newFile = Utils.join(STAGE_DIR, addFile);
-//                    Utils.writeContents(newFile, file);
                 } else if (contentSha1(f).equals(fileSha1)) {
                     throw new Error("don't add same thing twice");
                 }
@@ -132,7 +120,7 @@ public class Repository {
         File[] blobList = BLOBS_DIR.listFiles();
         if (blobList.length > 0) {
             for (File f : blobList) {
-                if (contentSha1(f).equals(fileSha1)) {
+                if (f.getName().equals(fileSha1)) {
                     throw new Error("the file has been committed");
                 }
             }
@@ -141,8 +129,8 @@ public class Repository {
         /* add file to blob and stage */
         File stageFile = Utils.join(STAGE_DIR, addFile);
         File blobFile = Utils.join(BLOBS_DIR, fileSha1);
-        Utils.writeContents(STAGE_DIR, stageFile);
-        Utils.writeContents(BLOBS_DIR, blobFile);
+        Utils.writeObject(stageFile, file);
+        Utils.writeObject(blobFile, file);
 
     }
 
@@ -226,6 +214,36 @@ public class Repository {
         }
         return addFileByte;
     }
+
+    /** Unstage the file if it is currently staged for addition.
+     * If the file is tracked in the current commit, stage it for
+     * removal and remove the file from the working directory if
+     * the user has not already done so (do not remove it unless
+     * it is tracked in the current commit).   */
+     public static void remove(String fileName) {
+
+         File cwdFile = getFileFromDir(CWD, fileName);
+         String cwdFileSha1 = contentSha1(cwdFile);
+
+         /* remove the file from staging area */
+         File[] stageList = STAGE_DIR.listFiles();
+         if (stageList.length > 0) {
+             for (File f : stageList) {
+                 if (f.getName().equals(fileName)) {
+                     f.delete();
+                 }
+             }
+         }
+
+         /* remove the file from CWD if it is tracked by head */
+        Commit headCommit = Utils.readObject(HEAD_DIR.listFiles()[0], Commit.class);
+        if(headCommit.getSet().contains(cwdFileSha1)) {
+            cwdFile.delete();
+        } else {
+            throw new Error("No reason to remove the file.");
+        }
+    }
+
 
     public void status() {
 
