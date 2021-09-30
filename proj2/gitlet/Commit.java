@@ -46,8 +46,11 @@ public class Commit implements Serializable {
     public static final File REMOVE_DIR = join(GIT_DIR, "remove");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
+    /** The head directory. */
+    public static final File HEAD_DIR = join(GIT_DIR, "head");
     /** The master directory. */
     public static final File MASTER_DIR = join(GIT_DIR, "master");
+
 
     /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
      * restored at a later time, creating a new commit. The commit is said to be tracking the saved
@@ -61,6 +64,8 @@ public class Commit implements Serializable {
      * result being staged for removal by the rm command (below). */
     public Commit(String message) {
 
+        File masterCommit = null;
+        File headCommit = null;
         File newCommit = null;
         File masterFile = null;
         this.message = message;
@@ -72,12 +77,10 @@ public class Commit implements Serializable {
             /* current time */
             this.timestamp = new Date().toString();
 
-            /* get file from master as parent */
-            File[] master = MASTER_DIR.listFiles();
-            for (File f : master) {
-                this.parent = f.getName();
-                masterFile = f;
-            }
+            /* get the file from head as parent  */
+            File head = HEAD_DIR.listFiles()[0];
+            this.parent = head.getName();
+            head.delete();
 
             /* Commit blobs (added) files */
             File[] stageList = STAGE_DIR.listFiles();
@@ -93,6 +96,7 @@ public class Commit implements Serializable {
             /* construct new commit */
             this.name = Utils.sha1(timestamp, message);
             newCommit = Utils.join(COMMIT_DIR, name);
+            headCommit = Utils.join(HEAD_DIR, name);
         } else {
 
             /* current time */
@@ -101,14 +105,12 @@ public class Commit implements Serializable {
             this.parent = null;
             /* construct initial commit */
             this.name = Utils.sha1(timestamp, message);
-            newCommit = Utils.join(MASTER_DIR, name);
+            masterCommit = Utils.join(MASTER_DIR, name);
+
         }
 
-
-        /* Overwrites master file */
-        if (masterFile != null) {
-            Utils.writeObject(masterFile, this);
-        }
+        /* add the commit to head file */
+        Utils.writeObject(headCommit, this);
 
         /* create new commit -> new commit on COMMIT_DIR, init in MASTER_DIR */
         Utils.writeObject(newCommit, this);

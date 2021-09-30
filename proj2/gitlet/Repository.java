@@ -37,6 +37,8 @@ public class Repository {
     public static final File REMOVE_DIR = join(GIT_DIR, "remove");
     /** The commit directory. */
     public static final File COMMIT_DIR = join(GIT_DIR, "commit");
+    /** The head directory. */
+    public static final File HEAD_DIR = join(GIT_DIR, "head");
     /** The master directory. */
     public static final File MASTER_DIR = join(GIT_DIR, "master");
 
@@ -53,6 +55,7 @@ public class Repository {
         MASTER_DIR.mkdir();
         STAGE_DIR.mkdir();
         REMOVE_DIR.mkdir();
+        HEAD_DIR.mkdir();
     }
 
     /**
@@ -136,12 +139,8 @@ public class Repository {
         Utils.writeObject(stage, file);
 
         if (blobSameBool) return;
-        if (blobFileBool) {
             File blob = Utils.join(BLOBS_DIR, fileSha1);
             Utils.writeObject(blob, file);
-        }
-
-
 
     }
 
@@ -199,15 +198,17 @@ public class Repository {
         } catch (IOException e) {
             throw new Error("fail on converting to byte");
         }
-        String fileSha1 = sha1(file, addFileByte);
+        String fileSha1 = sha1(file.getName(), addFileByte);
         return fileSha1;
     }
 
     public static File getFileFromDir(File dir, String file) {
         File[] fileList = dir.listFiles();
         File tempFile = null;
+
         for (File f : fileList) {
             if (f.getName().equals(file)) {
+                tempFile = f;
                 return tempFile;
             }
         }
