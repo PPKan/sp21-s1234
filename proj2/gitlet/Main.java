@@ -21,9 +21,13 @@ public class Main {
             case "commit":
                 new Commit(args[1]);
                 break;
+            case "rm":
+                Repository.remove(args[1]);
+                break;
             case "same":
                 System.out.println(Repository.same(args[1], args[2]));
                 break;
+
         }
     }
 }

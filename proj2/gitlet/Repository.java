@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.ST;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 
 import static gitlet.Utils.*;
@@ -16,7 +17,7 @@ import static gitlet.Utils.*;
  *
  *  @PeterKan
  */
-public class Repository {
+public class Repository implements Serializable {
     /**
      * TODO: add instance variables here.
      *
@@ -24,6 +25,9 @@ public class Repository {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided two examples for you.
      */
+
+    String name;
+    String sha1;
 
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
@@ -58,6 +62,11 @@ public class Repository {
         HEAD_DIR.mkdir();
     }
 
+    public Repository(String sha1, String name) {
+        this.sha1 = sha1;
+        this.name = name;
+    }
+
     /**
      * Creates a new Gitlet version-control system in the current directory.
      * This system will automatically start with one commit: a commit that
@@ -85,52 +94,53 @@ public class Repository {
      * be added, and remove it from the staging area if it is already there (as can
      * happen when a file is changed, added, and then changed back to it's original
      * version). The file will no longer be staged for removal (see gitlet rm),
-     * if it was at the time of the command.
-     * 1. check the file in blobs
-     * if the name are the same, return if the content is identical
-     * else add files into the blob directory and
-     * 2. check files in staging directory
-     * if the name are the same, do nothing if the content is identical
-     * else replace the file in the staging directory. */
+     * 1. put the file in blob with the name of its sha1
+     * return if there are already a same file in blob
+     * 2. place the class file in staging area with the name of its file name
+     * if the class file name are same, replace the file with the new content.
+      */
     public static void add(String addFile) {
 
         File file = getFileFromDir(CWD, addFile);
-        String fileSha1 = contentSha1(file);
+        Repository res = new Repository(contentSha1(file), addFile);
+
+
+        /* look for file in blob, if there's a same file, return */
+        File[] blobList = BLOBS_DIR.listFiles();
+        if (blobList.length > 0) {
+            for (File f : blobList) {
+                if (f.getName().equals(res.sha1)) {
+                    throw new Error("the file has been committed");
+                }
+            }
+        }
 
         /* look for the file in stage, if there's a same name file with
         different content, update it, else do nothing.
         1. compare its name
         if same - compare its content
         if different/nothing - do nothing
-        use file's name as a staged file. convert it while commiting.
+        use file's name as a staged file. convert it while committing.
         */
         File[] stageList = STAGE_DIR.listFiles();
         if (stageList.length > 0) {
             for (File f : stageList) {
+                Repository resF = Utils.readObject(f, Repository.class);
                 /* update content if name are same but with different content */
-                if (f.getName().equals(addFile) && !contentSha1(f).equals(fileSha1)) {
+                if (resF.name.equals(addFile) && !resF.sha1.equals(res.sha1)) {
                     f.delete();
-                } else if (contentSha1(f).equals(fileSha1)) {
+                } else if (contentSha1(f).equals(res.sha1)) {
                     throw new Error("don't add same thing twice");
                 }
             }
         }
 
-        /* look for file in blob, if there's a same file, return */
-        File[] blobList = BLOBS_DIR.listFiles();
-        if (blobList.length > 0) {
-            for (File f : blobList) {
-                if (f.getName().equals(fileSha1)) {
-                    throw new Error("the file has been committed");
-                }
-            }
-        }
 
         /* add file to blob and stage */
-        File stageFile = Utils.join(STAGE_DIR, addFile);
-        File blobFile = Utils.join(BLOBS_DIR, fileSha1);
-        Utils.writeObject(stageFile, file);
-        Utils.writeObject(blobFile, file);
+        File stageFile = Utils.join(STAGE_DIR, res.name);
+        File blobFile = Utils.join(BLOBS_DIR, res.sha1);
+        Utils.writeObject(stageFile, res);
+        Utils.writeContents(blobFile, file);
 
     }
 
@@ -205,6 +215,19 @@ public class Repository {
         return null;
     }
 
+    public static boolean removeFileFromDir(File dir, String file) {
+        File[] fileList = dir.listFiles();
+        if (fileList.length > 0) {
+            for (File f : fileList) {
+                if (f.getName().equals(file)) {
+                    f.delete();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static byte[] getByte(File file) {
         byte[] addFileByte = new byte[0];
         try {
@@ -224,23 +247,22 @@ public class Repository {
 
          File cwdFile = getFileFromDir(CWD, fileName);
          String cwdFileSha1 = contentSha1(cwdFile);
+         System.out.println(cwdFileSha1);
 
-         /* remove the file from staging area */
-         File[] stageList = STAGE_DIR.listFiles();
-         if (stageList.length > 0) {
-             for (File f : stageList) {
-                 if (f.getName().equals(fileName)) {
-                     f.delete();
-                 }
-             }
+         /* remove the file from staging and blob area */
+         String rmSha1 = contentSha1(getFileFromDir(CWD, fileName));
+         if (removeFileFromDir(STAGE_DIR, fileName)) {
+             removeFileFromDir(BLOBS_DIR, rmSha1);
          }
+//         System.out.println(rmSha1);
 
          /* remove the file from CWD if it is tracked by head */
         Commit headCommit = Utils.readObject(HEAD_DIR.listFiles()[0], Commit.class);
+        System.out.println(headCommit.getSet().toArray()[0]);
         if(headCommit.getSet().contains(cwdFileSha1)) {
             cwdFile.delete();
         } else {
-            throw new Error("No reason to remove the file.");
+            System.out.println("123");
         }
     }
 

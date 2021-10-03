@@ -32,7 +32,7 @@ public class Commit implements Serializable {
     /** Parent is a sha1 code of its parent. */
     private String parent;
     /** Store information */
-    private Set<String> stageSet = new HashSet<>();
+    private HashSet<String> stageSet = new HashSet<>();
 
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
@@ -80,17 +80,20 @@ public class Commit implements Serializable {
             /* get the file from head as parent  */
             File head = HEAD_DIR.listFiles()[0];
             this.parent = head.getName();
+
+            /* get set from parent */
+            this.stageSet = Utils.readObject(head, Commit.class).getSet();
             head.delete();
 
-            /* Commit blobs (added) files */
+            /* Commit staged files */
             File[] stageList = STAGE_DIR.listFiles();
             if (stageList.length == 0) {
                 /* the error message needed to be revised */
                 throw new Error("Nothing was in the stage list");
             }
             for (File f : stageList) {
-                String stageSha1 = Repository.contentSha1(f);
-                stageSet.add(stageSha1);
+                Repository repF = Utils.readObject(f, Repository.class);
+                stageSet.add(repF.sha1);
                 f.delete();
             }
 
@@ -120,7 +123,11 @@ public class Commit implements Serializable {
         Utils.writeObject(newCommit, this);
     }
 
-    public Set getSet() {
+//    private HashSet<String> getStringSet() {
+//        return new HashSet<String>();
+//    }
+
+    public HashSet<String> getSet() {
         return stageSet;
     }
 
