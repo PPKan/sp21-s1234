@@ -19,13 +19,22 @@ public class Main {
                 Repository.add(args[1]);
                 break;
             case "commit":
-                new Commit(args[1]);
+                Commit.getCommit(args[1]);
                 break;
             case "rm":
                 Repository.remove(args[1]);
                 break;
             case "same":
                 System.out.println(Repository.same(args[1], args[2]));
+                break;
+            case "log":
+                Repository.log();
+                break;
+            case "global-log":
+                Repository.globalLog();
+                break;
+            case "find":
+                Repository.find(args[1]);
                 break;
 
         }

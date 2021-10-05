@@ -1,7 +1,5 @@
 package gitlet;
 
-import edu.princeton.cs.algs4.ST;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -28,9 +26,12 @@ public class Repository implements Serializable {
 
     String name;
     String sha1;
+    byte[] byteArray;
 
     /** The current working directory. */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+    public static final File WD = new File(System.getProperty("user.dir"));
+    /** folder to put some testing file */
+    public static final File CWD = join(WD, "files");
     /** The .gitlet directory. */
     public static final File GIT_DIR = join(CWD, ".gitlet");
     /** The staging directory. */
@@ -46,6 +47,8 @@ public class Repository implements Serializable {
     /** The master directory. */
     public static final File MASTER_DIR = join(GIT_DIR, "master");
 
+    /** log txt file */
+    public static final File LOG = join(GIT_DIR, "log.txt");
 
     /** Set up a staging directory. */
     public static void setupDir() {
@@ -62,9 +65,10 @@ public class Repository implements Serializable {
         HEAD_DIR.mkdir();
     }
 
-    public Repository(String sha1, String name) {
+    public Repository(String sha1, String name, byte[] byteArray) {
         this.sha1 = sha1;
         this.name = name;
+        this.byteArray = byteArray;
     }
 
     /**
@@ -82,7 +86,7 @@ public class Repository implements Serializable {
      * commits in all repositories will trace back to it. */
     public static void init() {
         setupDir();
-        new Commit("initial commit");
+        Commit.getCommit("initial commit");
     }
 
     /** Adds a copy of the file as it currently exists to the staging area (see the
@@ -102,8 +106,10 @@ public class Repository implements Serializable {
     public static void add(String addFile) {
 
         File file = getFileFromDir(CWD, addFile);
-        Repository res = new Repository(contentSha1(file), addFile);
-
+        byte[] byteArray = serialize(file);
+        Repository res = new Repository(contentSha1(file), addFile, byteArray);
+        System.out.println(res.sha1);
+        System.out.println(sha1(addFile, byteArray));
 
         /* look for file in blob, if there's a same file, return */
         File[] blobList = BLOBS_DIR.listFiles();
@@ -140,7 +146,7 @@ public class Repository implements Serializable {
         File stageFile = Utils.join(STAGE_DIR, res.name);
         File blobFile = Utils.join(BLOBS_DIR, res.sha1);
         Utils.writeObject(stageFile, res);
-        Utils.writeContents(blobFile, file);
+        Utils.writeContents(blobFile, res.byteArray);
 
     }
 
@@ -192,12 +198,7 @@ public class Repository implements Serializable {
     }
 
     public static String contentSha1(File file) {
-        byte[] addFileByte = new byte[0];
-        try {
-            addFileByte = Files.readAllBytes(file.toPath());
-        } catch (IOException e) {
-            throw new Error("fail on converting to byte");
-        }
+        byte[] addFileByte = getByte(file);
         String fileSha1 = sha1(file.getName(), addFileByte);
         return fileSha1;
     }
@@ -263,6 +264,31 @@ public class Repository implements Serializable {
             cwdFile.delete();
         } else {
             System.out.println("123");
+        }
+    }
+
+    public static void log() {
+        String output = readContentsAsString(LOG);
+        System.out.println(output);
+    }
+
+    public static void globalLog() {
+         File[] commitList = COMMIT_DIR.listFiles();
+         for (File f : commitList) {
+             Commit c = Utils.readObject(f, Commit.class);
+             System.out.println(c.logMessage(true));
+         }
+    }
+
+    public static void find(String message) {
+        File[] commitList = COMMIT_DIR.listFiles();
+        for (File f : commitList) {
+            Commit c = Utils.readObject(f, Commit.class);
+            if (c.getMessage().equals(message)) {
+                System.out.println("===");
+                System.out.println(message);
+                System.out.println(c.getName());
+            }
         }
     }
 

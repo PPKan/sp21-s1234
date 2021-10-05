@@ -220,7 +220,16 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      */
     @Override
     public V remove(K key){
-        throw new UnsupportedOperationException();
+        List<K> temp = new K[size];
+        int setSize = 0;
+        for (int i=0; i<size; i+=1) {
+            if (table[i] != null) {
+                for (Node n : table[i]) {
+                    keySet[setSize] = n.key;
+                }
+
+            }
+        }
     }
 
     /**

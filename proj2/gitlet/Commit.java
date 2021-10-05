@@ -3,6 +3,7 @@ package gitlet;
 // TODO: any imports you need here
 
 import java.io.File;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
 
@@ -31,6 +32,7 @@ public class Commit implements Serializable {
     private String name;
     /** Parent is a sha1 code of its parent. */
     private String parent;
+    private String log;
     /** Store information */
     private HashSet<String> stageSet = new HashSet<>();
 
@@ -51,6 +53,13 @@ public class Commit implements Serializable {
     /** The master directory. */
     public static final File MASTER_DIR = join(GIT_DIR, "master");
 
+    /** log txt file */
+    public static final File LOG = join(GIT_DIR, "log.txt");
+
+    /* a weird stuff that I don't know */
+    @Serial
+    private static final long serialVersionUID = 8748712533697994526L;
+
 
     /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
      * restored at a later time, creating a new commit. The commit is said to be tracking the saved
@@ -62,27 +71,33 @@ public class Commit implements Serializable {
      * will save and start tracking any files that were staged for addition but weren't tracked by its
      * parent. Finally, files tracked in the current commit may be untracked in the new commit as a
      * result being staged for removal by the rm command (below). */
-    public Commit(String message) {
+
+    public Commit() {
+
+    }
+
+    public static void getCommit(String message) {
+
+        Commit fileCommit = new Commit();
 
         File masterCommit = null;
         File headCommit = null;
         File newCommit = null;
-        File masterFile = null;
-        this.message = message;
+        fileCommit.message = message;
 
         /* to distinguish from initial commit (parent is null), initial commit
         commits no file */
-        if (!this.message.equals("initial commit")) {
+        if (!fileCommit.message.equals("initial commit")) {
 
             /* current time */
-            this.timestamp = new Date().toString();
+            fileCommit.timestamp = new Date().toString();
 
             /* get the file from head as parent  */
             File head = HEAD_DIR.listFiles()[0];
-            this.parent = head.getName();
+            fileCommit.parent = head.getName();
 
             /* get set from parent */
-            this.stageSet = Utils.readObject(head, Commit.class).getSet();
+            fileCommit.stageSet = Utils.readObject(head, Commit.class).getSet();
             head.delete();
 
             /* Commit staged files */
@@ -93,39 +108,74 @@ public class Commit implements Serializable {
             }
             for (File f : stageList) {
                 Repository repF = Utils.readObject(f, Repository.class);
-                stageSet.add(repF.sha1);
+                fileCommit.stageSet.add(repF.sha1);
                 f.delete();
             }
 
             /* construct new commit */
-            this.name = Utils.sha1(timestamp, message);
-            newCommit = Utils.join(COMMIT_DIR, name);
+            fileCommit.name = Utils.sha1(fileCommit.timestamp, message);
+            newCommit = Utils.join(COMMIT_DIR, fileCommit.name);
+
+            /* construct log file */
+            String logString = Utils.readContentsAsString(LOG);
+            Utils.writeContents(LOG, fileCommit.logMessage(false), logString);
+
         } else {
 
             /* current time */
-            this.timestamp = new Date(0).toString();
+            fileCommit.timestamp = new Date(0).toString();
             /* no parent on first commit */
-            this.parent = null;
+            fileCommit.parent = null;
             /* construct initial commit */
-            this.name = Utils.sha1(timestamp, message);
-            masterCommit = Utils.join(MASTER_DIR, name);
-            Utils.writeObject(masterCommit, this);
-            newCommit = Utils.join(COMMIT_DIR, name);
-
+            fileCommit.name = Utils.sha1(fileCommit.timestamp, message);
+            masterCommit = Utils.join(MASTER_DIR, fileCommit.name);
+            Utils.writeObject(masterCommit, fileCommit);
+            newCommit = Utils.join(COMMIT_DIR, fileCommit.name);
+            /* construct log file */
+            Utils.writeContents(LOG, fileCommit.logMessage(true));
 
         }
 
         /* add the commit to head file */
-        headCommit = Utils.join(HEAD_DIR, name);
-        Utils.writeObject(headCommit, this);
+        headCommit = Utils.join(HEAD_DIR, fileCommit.name);
+        Utils.writeObject(headCommit, fileCommit);
 
         /* create new commit -> new commit on COMMIT_DIR, init in MASTER_DIR */
-        Utils.writeObject(newCommit, this);
+        Utils.writeObject(newCommit, fileCommit);
     }
+
 
 //    private HashSet<String> getStringSet() {
 //        return new HashSet<String>();
 //    }
+
+    /** get the log block */
+    public String logMessage(boolean init) {
+        String logContent =  "===" + "\n"
+                + "commit " + this.name + "\n"
+                + "Date: " + this.timestamp + "\n"
+                + this.message;
+
+        /* get log file to string */
+        if (!init) {
+            logContent = logContent + "\n";
+        }
+
+        return logContent;
+
+    }
+
+    public String getLog() {
+        return this.log;
+    }
+
+    public String getMessage() {
+        return this.message;
+    }
+
+    public String getName() {
+        return this.name;
+    }
 
     public HashSet<String> getSet() {
         return stageSet;
