@@ -33,7 +33,7 @@ public class Repository implements Serializable {
     /** folder to put some testing file */
     public static final File CWD = join(WD, "files");
     /** The .gitlet directory. */
-    public static final File GIT_DIR = join(CWD, ".gitlet");
+    public static final File GIT_DIR = join(WD, ".gitlet");
     /** The staging directory. */
     public static final File BLOBS_DIR = join(GIT_DIR, "blobs");
     /** The staging directory. */
@@ -57,6 +57,7 @@ public class Repository implements Serializable {
         } else {
             throw new Error("A Gitlet version-control system already exists in the current directory.");
         }
+        CWD.mkdir();
         BLOBS_DIR.mkdir();
         COMMIT_DIR.mkdir();
         MASTER_DIR.mkdir();
@@ -108,8 +109,8 @@ public class Repository implements Serializable {
         File file = getFileFromDir(CWD, addFile);
         byte[] byteArray = serialize(file);
         Repository res = new Repository(contentSha1(file), addFile, byteArray);
-        System.out.println(res.sha1);
-        System.out.println(sha1(addFile, byteArray));
+//        System.out.println(res.sha1);
+//        System.out.println(sha1(addFile, byteArray));
 
         /* look for file in blob, if there's a same file, return */
         File[] blobList = BLOBS_DIR.listFiles();
@@ -293,8 +294,49 @@ public class Repository implements Serializable {
     }
 
 
-    public void status() {
+    public static void status() {
+        File[] masterList = HEAD_DIR.listFiles();
+        if (masterList.length < 1) {
+            throw new Error("please init the gitlet first");
+        }
+        String stageFile = "";
+        File[] stageList = STAGE_DIR.listFiles();
+        if (stageList.length > 0) {
+            int counter = 0;
+            for (File f : stageList) {
+                if (counter == stageList.length) {
+                    stageFile = stageFile + f.getName();
+                } else {
+                    stageFile = stageFile + f.getName() + "\n";
+                }
+                counter += 1;
+            }
+        }
+        String removeFile = "";
+        File[] removeList = REMOVE_DIR.listFiles();
+        if (removeList.length > 0) {
+            int counter = 0;
+            for (File f : removeList) {
+                if (counter == removeList.length) {
+                    removeFile = removeFile + f.getName();
+                } else {
+                    removeFile = removeFile + f.getName() + "\n";
+                }
+                counter += 1;
+            }
+        }
 
+
+         System.out.println(
+                 "=== Branches ===" + "\n"
+                 + "*master" + "\n"
+                 + "\n"
+                 + "=== Staged Files ===" + "\n"
+                 + stageFile + "\n"
+                 + "\n"
+                 + "=== Removed Files ===" + "\n"
+                 + removeFile
+         );
     }
 
 
