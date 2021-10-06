@@ -1,8 +1,6 @@
 package gitlet;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,7 +108,7 @@ public class Repository implements Serializable {
     public static void add(String addFile) {
 
         File file = getFileFromDir(CWD, addFile);
-        byte[] byteArray = serialize(file);
+        byte[] byteArray = getByte(file);
         Repository res = new Repository(contentSha1(file), addFile, byteArray);
 //        System.out.println(res.sha1);
 //        System.out.println(sha1(addFile, byteArray));
@@ -263,11 +261,13 @@ public class Repository implements Serializable {
 
          /* remove the file from CWD if it is tracked by head */
         Commit headCommit = Utils.readObject(HEAD_DIR.listFiles()[0], Commit.class);
-        List<String> list = new ArrayList<String>(headCommit.getMap().values());
-        if(list.contains(cwdFileSha1)) {
-            cwdFile.delete();
-        } else {
-            System.out.println("123");
+        List<Commit.Node> list = new ArrayList<Commit.Node>(headCommit.getMap().values());
+        for (Commit.Node n : list) {
+            if (n.getSha1().equals(cwdFileSha1)) {
+                cwdFile.delete();
+            } else {
+                System.out.println("123");
+            }
         }
     }
 
@@ -336,11 +336,24 @@ public class Repository implements Serializable {
         return file;
     }
 
+
+    public static void checkout (String[] args) {
+        if (args[0].length() == 40) {
+            if (args.length == 2) {
+                checkIdFile(args[0], args[1]);
+            } else {
+                checkSha1(args[0]);
+            }
+        } else {
+            checkName(args[0]);
+        }
+    }
+
     /** 1. Takes the version of the file as it exists in the head commit and
      * puts it in the working directory, overwriting the version of the
      * file that's already there if there is one. The new version of the
      * file is not staged. */
-    public static void checkout (String name) {
+    private static void checkName(String name) {
         Commit headCommit = readObject(HEAD_DIR.listFiles()[0], Commit.class);
         HashMap<String, Commit.Node> headMap = headCommit.getMap();
         File checkFile = Utils.join(CWD, name);
@@ -349,6 +362,29 @@ public class Repository implements Serializable {
         } else {
             throw new Error("this file does not exist in head");
         }
+    }
+
+    /**Takes all files in the commit at the head of the given branch, and
+     * puts them in the working directory, overwriting the versions of the
+     * files that are already there if they exist. Also, at the end of this
+     * command, the given branch will now be considered the current branch
+     * (HEAD). Any files that are tracked in the current branch but are not
+     * present in the checked-out branch are deleted. The staging area is
+     * cleared, unless the checked-out branch is the current branch (see
+     * Failure cases below). */
+    private static void checkSha1(String Sha1) {
+
+        /* check the file in cwd to make sure they are all committed
+        * (need to traverse through all files?) */
+
+        /* get head map */
+
+        /* delete all file in cwd */
+
+        /* put all file from the sha1 into cwd */
+
+        /* the sha1 become head */
+
 
     }
 
@@ -356,7 +392,42 @@ public class Repository implements Serializable {
      * given id, and puts it in the working directory, overwriting the version
      * of the file that's already there if there is one. The new version of
      * the file is not staged. */
-    public static void checkout (String id, String name) {
+    private static void checkIdFile (String id, String name) {
+
+        File deleteFile = null;
+
+        /* get the certain commit */
+        File[] commitList = COMMIT_DIR.listFiles();
+        Commit checkCommit = null;
+        for (File f : commitList) {
+            if (f.getName().equals(id)) {
+                checkCommit = readObject(f, Commit.class);
+            }
+        }
+        if (checkCommit == null) {
+            throw new Error("wrong commit id");
+        }
+
+        /* remove file in CWD */
+        File[] cwdList = CWD.listFiles();
+        for (File g : cwdList) {
+            if (g.getName().equals(name)) {
+                deleteFile = g;
+            }
+        }
+
+        HashMap<String, Commit.Node> checkMap = checkCommit.getMap();
+        /* put file in CWD */
+        File checkFile = Utils.join(CWD, name);
+        if (checkMap.containsKey(name)) {
+            if (deleteFile != null) {
+                deleteFile.delete();
+            }
+//            checkFile = Utils.join(CWD, name);
+            Utils.writeContents(checkFile, checkMap.get(name).getContent());
+        } else {
+            throw new Error("this file does not exist in commit");
+        }
 
     }
 

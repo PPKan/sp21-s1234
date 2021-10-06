@@ -40,7 +40,13 @@ public class Main {
                 Repository.status();
                 break;
             case "checkout":
-                Repository.checkout(args[1]);
+                String[] check = new String[args.length - 1];
+                int count = 0;
+                for (int i=1; i<args.length; i+=1) {
+                    check[count] = args[i];
+                    count += 1;
+                }
+                Repository.checkout(check);
                 break;
 
         }

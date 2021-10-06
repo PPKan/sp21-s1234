@@ -61,31 +61,6 @@ public class Commit implements Serializable {
     @Serial
     private static final long serialVersionUID = 6892974342084411122L;
 
-    public static class Node {
-
-        private String name;
-        private String sha1;
-        private byte[] content;
-
-        public Node(String name, String sha1, byte[] content) {
-            this.name = name;
-            this.sha1 = sha1;
-            this.content = content;
-        }
-
-        public byte[] getContent() {
-            return content;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getSha1() {
-            return sha1;
-        }
-    }
-
 
     /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
      * restored at a later time, creating a new commit. The commit is said to be tracking the saved
@@ -135,7 +110,7 @@ public class Commit implements Serializable {
             for (File f : stageList) {
                 Repository repF = Utils.readObject(f, Repository.class);
                 Node rep = new Node(repF.name, repF.sha1, repF.byteArray);
-                fileCommit.stageMap.put(repF.sha1, rep);
+                fileCommit.stageMap.put(repF.name, rep);
                 f.delete();
             }
 
@@ -169,6 +144,33 @@ public class Commit implements Serializable {
 
         /* create new commit -> new commit on COMMIT_DIR, init in MASTER_DIR */
         Utils.writeObject(newCommit, fileCommit);
+    }
+
+
+    public static class Node implements Serializable{
+
+        private String name;
+        private String sha1;
+        private byte[] content;
+
+        public Node(String name, String sha1, byte[] content) {
+            this.name = name;
+            this.sha1 = sha1;
+            this.content = content;
+        }
+
+        public byte[] getContent() {
+            return content;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getSha1() {
+            return sha1;
+        }
+
     }
 
 
