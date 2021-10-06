@@ -30,11 +30,12 @@ public class Commit implements Serializable {
     private String timestamp;
     private String message;
     private String name;
+    private byte[] byteArray;
     /** Parent is a sha1 code of its parent. */
     private String parent;
     private String log;
     /** Store information */
-    private HashSet<String> stageSet = new HashSet<>();
+    private HashMap<String, Node> stageMap = new HashMap<>();
 
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
@@ -58,7 +59,32 @@ public class Commit implements Serializable {
 
     /* a weird stuff that I don't know */
     @Serial
-    private static final long serialVersionUID = 8748712533697994526L;
+    private static final long serialVersionUID = 6892974342084411122L;
+
+    public static class Node {
+
+        private String name;
+        private String sha1;
+        private byte[] content;
+
+        public Node(String name, String sha1, byte[] content) {
+            this.name = name;
+            this.sha1 = sha1;
+            this.content = content;
+        }
+
+        public byte[] getContent() {
+            return content;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getSha1() {
+            return sha1;
+        }
+    }
 
 
     /**  Saves a snapshot of tracked files in the current commit and staging area so they can be
@@ -71,7 +97,6 @@ public class Commit implements Serializable {
      * will save and start tracking any files that were staged for addition but weren't tracked by its
      * parent. Finally, files tracked in the current commit may be untracked in the new commit as a
      * result being staged for removal by the rm command (below). */
-
     public Commit() {
 
     }
@@ -85,6 +110,7 @@ public class Commit implements Serializable {
         File newCommit = null;
         fileCommit.message = message;
 
+
         /* to distinguish from initial commit (parent is null), initial commit
         commits no file */
         if (!fileCommit.message.equals("initial commit")) {
@@ -97,7 +123,7 @@ public class Commit implements Serializable {
             fileCommit.parent = head.getName();
 
             /* get set from parent */
-            fileCommit.stageSet = Utils.readObject(head, Commit.class).getSet();
+            fileCommit.stageMap = Utils.readObject(head, Commit.class).getMap();
             head.delete();
 
             /* Commit staged files */
@@ -108,7 +134,8 @@ public class Commit implements Serializable {
             }
             for (File f : stageList) {
                 Repository repF = Utils.readObject(f, Repository.class);
-                fileCommit.stageSet.add(repF.sha1);
+                Node rep = new Node(repF.name, repF.sha1, repF.byteArray);
+                fileCommit.stageMap.put(repF.sha1, rep);
                 f.delete();
             }
 
@@ -177,8 +204,8 @@ public class Commit implements Serializable {
         return this.name;
     }
 
-    public HashSet<String> getSet() {
-        return stageSet;
+    public HashMap<String, Node> getMap() {
+        return stageMap;
     }
 
 

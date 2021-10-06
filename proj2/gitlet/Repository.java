@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import static gitlet.Utils.*;
 
@@ -260,8 +263,8 @@ public class Repository implements Serializable {
 
          /* remove the file from CWD if it is tracked by head */
         Commit headCommit = Utils.readObject(HEAD_DIR.listFiles()[0], Commit.class);
-        System.out.println(headCommit.getSet().toArray()[0]);
-        if(headCommit.getSet().contains(cwdFileSha1)) {
+        List<String> list = new ArrayList<String>(headCommit.getMap().values());
+        if(list.contains(cwdFileSha1)) {
             cwdFile.delete();
         } else {
             System.out.println("123");
@@ -295,37 +298,14 @@ public class Repository implements Serializable {
 
 
     public static void status() {
+
         File[] masterList = HEAD_DIR.listFiles();
         if (masterList.length < 1) {
             throw new Error("please init the gitlet first");
         }
-        String stageFile = "";
-        File[] stageList = STAGE_DIR.listFiles();
-        if (stageList.length > 0) {
-            int counter = 0;
-            for (File f : stageList) {
-                if (counter == stageList.length) {
-                    stageFile = stageFile + f.getName();
-                } else {
-                    stageFile = stageFile + f.getName() + "\n";
-                }
-                counter += 1;
-            }
-        }
-        String removeFile = "";
-        File[] removeList = REMOVE_DIR.listFiles();
-        if (removeList.length > 0) {
-            int counter = 0;
-            for (File f : removeList) {
-                if (counter == removeList.length) {
-                    removeFile = removeFile + f.getName();
-                } else {
-                    removeFile = removeFile + f.getName() + "\n";
-                }
-                counter += 1;
-            }
-        }
 
+        String stageFile = statusString(STAGE_DIR);
+        String removeFile = statusString(REMOVE_DIR);
 
          System.out.println(
                  "=== Branches ===" + "\n"
@@ -337,6 +317,47 @@ public class Repository implements Serializable {
                  + "=== Removed Files ===" + "\n"
                  + removeFile
          );
+    }
+
+    private static String statusString(File dir) {
+        String file = "";
+        File[] list = dir.listFiles();
+        if (list.length > 0) {
+            int counter = 0;
+            for (File f : list) {
+                if (counter == list.length) {
+                    file = file + f.getName();
+                } else {
+                    file = file + f.getName() + "\n";
+                }
+                counter += 1;
+            }
+        }
+        return file;
+    }
+
+    /** 1. Takes the version of the file as it exists in the head commit and
+     * puts it in the working directory, overwriting the version of the
+     * file that's already there if there is one. The new version of the
+     * file is not staged. */
+    public static void checkout (String name) {
+        Commit headCommit = readObject(HEAD_DIR.listFiles()[0], Commit.class);
+        HashMap<String, Commit.Node> headMap = headCommit.getMap();
+        File checkFile = Utils.join(CWD, name);
+        if (headMap.containsKey(name)) {
+            Utils.writeContents(checkFile, headMap.get(name).getContent());
+        } else {
+            throw new Error("this file does not exist in head");
+        }
+
+    }
+
+    /** 2. Takes the version of the file as it exists in the commit with the
+     * given id, and puts it in the working directory, overwriting the version
+     * of the file that's already there if there is one. The new version of
+     * the file is not staged. */
+    public static void checkout (String id, String name) {
+
     }
 
 

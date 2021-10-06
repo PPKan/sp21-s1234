@@ -38,6 +38,10 @@ public class Main {
                 break;
             case "status":
                 Repository.status();
+                break;
+            case "checkout":
+                Repository.checkout(args[1]);
+                break;
 
         }
     }
