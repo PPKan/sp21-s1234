@@ -250,7 +250,6 @@ public class Repository implements Serializable {
 
          File cwdFile = getFileFromDir(CWD, fileName);
          String cwdFileSha1 = contentSha1(cwdFile);
-         System.out.println(cwdFileSha1);
 
          /* remove the file from staging and blob area */
          String rmSha1 = contentSha1(getFileFromDir(CWD, fileName));
@@ -259,14 +258,17 @@ public class Repository implements Serializable {
          }
 //         System.out.println(rmSha1);
 
-         /* remove the file from CWD if it is tracked by head */
+         /* stage for remove if the file from CWD is tracked by head.
+         * Remove form the tracking map while committing. */
+
+         /* Check the files in the head file, stage for remove if there's a file with
+         * same name.*/
         Commit headCommit = Utils.readObject(HEAD_DIR.listFiles()[0], Commit.class);
         List<Commit.Node> list = new ArrayList<Commit.Node>(headCommit.getMap().values());
         for (Commit.Node n : list) {
             if (n.getSha1().equals(cwdFileSha1)) {
-                cwdFile.delete();
-            } else {
-                System.out.println("123");
+                File removeFile = Utils.join(REMOVE_DIR, fileName);
+                Utils.writeObject(removeFile, new Repository(n.getSha1(), n.getName(), n.getContent()));
             }
         }
     }
@@ -364,7 +366,7 @@ public class Repository implements Serializable {
         }
     }
 
-    /**Takes all files in the commit at the head of the given branch, and
+    /** 3. Takes all files in the commit at the head of the given branch, and
      * puts them in the working directory, overwriting the versions of the
      * files that are already there if they exist. Also, at the end of this
      * command, the given branch will now be considered the current branch
@@ -372,19 +374,47 @@ public class Repository implements Serializable {
      * present in the checked-out branch are deleted. The staging area is
      * cleared, unless the checked-out branch is the current branch (see
      * Failure cases below). */
-    private static void checkSha1(String Sha1) {
+    private static void checkSha1(String branchName) {
 
         /* check the file in cwd to make sure they are all committed
         * (need to traverse through all files?) */
-
-        /* get head map */
+        File[] cwdList = CWD.listFiles();
+        Commit headCommit = readObject(HEAD_DIR.listFiles()[0], Commit.class);
+        HashMap<String, Commit.Node> headMap = headCommit.getMap();
+        for (File c : cwdList) {
+            if (!headMap.containsKey(c.getName())) {
+                throw new Error("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
+        }
 
         /* delete all file in cwd */
+        for (File c : cwdList) {
+            c.delete();
+        }
 
-        /* put all file from the sha1 into cwd */
+        /* put all file from the branch into cwd */
+        File[] commitList = COMMIT_DIR.listFiles();
+        File commitSha1 = null;
+        for (File com : commitList) {
+            if (com.getName().equals(branchName)) {
+               commitSha1 = com;
+            }
+        }
+        if (commitSha1 == null) {
+            throw new Error("No such branch exists.");
+        }
+        Commit branchCommit = readObject(commitSha1, Commit.class);
+        HashMap<String, Commit.Node> branchMap = branchCommit.getMap();
+        List<Commit.Node> list = new ArrayList<Commit.Node>(branchMap.values());
+        for (Commit.Node n : list) {
+            File cwdFile = Utils.join(CWD, n.getName());
+            Utils.writeContents(cwdFile, n.getContent());
+        }
 
-        /* the sha1 become head */
-
+        /* the branch become head */
+        HEAD_DIR.listFiles()[0].delete();
+        File newHeadCommit = Utils.join(HEAD_DIR, branchName);
+        Utils.writeObject(newHeadCommit, branchCommit);
 
     }
 

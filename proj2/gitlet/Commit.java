@@ -84,7 +84,7 @@ public class Commit implements Serializable {
         File headCommit = null;
         File newCommit = null;
         fileCommit.message = message;
-
+        File head = null;
 
         /* to distinguish from initial commit (parent is null), initial commit
         commits no file */
@@ -94,24 +94,45 @@ public class Commit implements Serializable {
             fileCommit.timestamp = new Date().toString();
 
             /* get the file from head as parent  */
-            File head = HEAD_DIR.listFiles()[0];
+            head = HEAD_DIR.listFiles()[0];
             fileCommit.parent = head.getName();
 
             /* get set from parent */
             fileCommit.stageMap = Utils.readObject(head, Commit.class).getMap();
-            head.delete();
+
+            File[] stageList = STAGE_DIR.listFiles();
+            File[] removeList = REMOVE_DIR.listFiles();
+            File[] cwdList = CWD.listFiles();
+
+            if (stageList.length == 0 && removeList.length == 0 ) {
+                /* the error message needed to be revised */
+                throw new Error("Nothing was in the stage list or remove list");
+            }
 
             /* Commit staged files */
-            File[] stageList = STAGE_DIR.listFiles();
-            if (stageList.length == 0) {
-                /* the error message needed to be revised */
-                throw new Error("Nothing was in the stage list");
-            }
             for (File f : stageList) {
                 Repository repF = Utils.readObject(f, Repository.class);
                 Node rep = new Node(repF.name, repF.sha1, repF.byteArray);
                 fileCommit.stageMap.put(repF.name, rep);
                 f.delete();
+            }
+
+            /* remove from map if there's staged for deletion */
+            if (removeList.length != 0) {
+                for (File r : removeList) {
+                    Repository rev = Utils.readObject(r, Repository.class);
+                    if (fileCommit.stageMap.containsKey(rev.name)) {
+                        fileCommit.stageMap.remove(rev.name);
+                    } else {
+                        throw new Error("the file isn't in the head file");
+                    }
+                    r.delete();
+                    for (File c : cwdList) {
+                        if (c.getName().equals(r.getName())) {
+                            c.delete();
+                        }
+                    }
+                }
             }
 
             /* construct new commit */
@@ -139,6 +160,9 @@ public class Commit implements Serializable {
         }
 
         /* add the commit to head file */
+        if (head != null ) {
+            head.delete();
+        }
         headCommit = Utils.join(HEAD_DIR, fileCommit.name);
         Utils.writeObject(headCommit, fileCommit);
 
